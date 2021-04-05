@@ -7,7 +7,7 @@ class Index
   end
 
   def publish
-    File.open("./dist/index.html", 'w') do |file|
+    File.open("./docs/index.html", 'w') do |file|
       page = with_layout { html }
       file.write(page)
     end

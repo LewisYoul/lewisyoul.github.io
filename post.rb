@@ -18,7 +18,7 @@ class Post
   end
 
   def publish
-    File.open("./dist/#{@basename}.html", 'w') do |file|
+    File.open("./docs/#{@basename}.html", 'w') do |file|
       page = with_layout { html }
       file.write(page)
     end
