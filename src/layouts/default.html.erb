@@ -2,8 +2,19 @@
 <html>
   <head>
     <title>Page Title</title>
+    <link rel="stylesheet" href="./stylesheets/tailwind.css" />
   </head>
   <body>
-    <%= yield %>
+    <nav class="bg-white shadow">
+      <div class="max-w-3xl mx-auto py-3">
+        <a class="text-xl hover:underline" href="index.html">
+          <h3 class="m-0">Lewis Youl</h3>
+        </a>
+      </div>
+    </nav>
+
+    <div class="max-w-3xl mx-auto py-3">
+      <%= yield %>
+    </div>
   </body>
 </html>

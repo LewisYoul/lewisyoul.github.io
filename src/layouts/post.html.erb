@@ -1,6 +1,6 @@
-<h1><%= title %></h1>
-<p><%= date %></p>
+<h1 class="text-center"><%= title %></h1>
+<p class="text-center text-md text-gray-500"><%= date.strftime("%d %B %Y") %></p>
 
-<p><%= summary %></p>
-
+<p class="mb-4"><%= summary %></p>
+<hr class="mb-4">
 <%= body %>

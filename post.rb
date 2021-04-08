@@ -1,5 +1,6 @@
 require './markdown_parser.rb'
 require 'yaml'
+require 'date'
 
 class Post
   attr_reader :basename, :body
@@ -33,7 +34,11 @@ class Post
   end
 
   def date
-    @frontmatter['date']
+    Date.parse(@frontmatter['date'])
+  end
+
+  def path
+    "#{@basename}.html"
   end
 
   private
