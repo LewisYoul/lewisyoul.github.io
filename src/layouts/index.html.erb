@@ -1,9 +1,9 @@
 
 
 <% @posts.each do |post| %>
-  <a href="<%= post.path %>" class="rounded-md p-3 transition cursor-pointer group">
-    <p class="text-gray-400 m-0"><%= post.date.strftime("%d %B %Y")%>
-    <h3 class="text-2xl font-bold group-hover:underline mt-2"><%= post.title %></h3>
-    <p class="mt-1 text-gray-500"><%= post.summary %></p>
+  <a href="<%= post.path %>" class="block rounded-md py-3 mb-6 transition cursor-pointer group">
+    <h2 class="font-bold group-hover:underline mt-2"><%= post.title %></h2>
+    <p class="text-gray-500"><%= post.summary %></p>
+    <p class="text-gray-400 m-0 text-sm"><%= post.date.strftime("%d %B %Y")%></p>
   </a>
 <% end %>
