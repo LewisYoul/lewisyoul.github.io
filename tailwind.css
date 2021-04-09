@@ -36,3 +36,7 @@ pre {
 pre > code {
   @apply p-0
 }
+
+#post > p > a {
+  @apply text-pink-600 hover:underline
+}

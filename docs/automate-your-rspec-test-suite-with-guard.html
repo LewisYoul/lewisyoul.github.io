@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Lewis Youl</title>
+    <link rel="stylesheet" href="./stylesheets/tailwind.css" />
+    <link rel="stylesheet" href="./stylesheets/highlight.css" />
+  </head>
+  <body>
+    <nav class="bg-white border-b">
+      <div class="max-w-3xl mx-auto py-3">
+        <a class="text-pink-600 text-xl hover:underline" href="index.html">
+          <h3 class="m-0">Lewis Youl</h3>
+        </a>
+      </div>
+    </nav>
+
+    <div class="max-w-3xl mx-auto py-3">
+      <h1 class="m-0 pt-12 text-center">Automate your RSpec test suite with Guard</h1>
+<p class="text-center text-md text-gray-500 mt-2">09 April 2021</p>
+
+
+<div id="post" class="pt-12">
+  <p><a href="https://rspec.info/">RSpec</a> is a wonderful tool for testing regular ruby and ruby on rails applications. However as an application and its test suite grows larger it can become cumbersome to run an entire suite or even an enire file when you make a change. Even switching between your editor and terminal to execute <code>bundle exec rspec</code> can become tiresome if you are regularly running your specs or practicing <a href="https://en.wikipedia.org/wiki/Test-driven_development">Test Driven Development</a>. Wouldn&#39;t it be wonderful if a tool existed that could automate the process of running your tests and only run them for files or tests that have actually changed?! Thankfully such a tool exists and it&#39;s called <a href="https://github.com/guard/guard">guard</a>. The official docs summarise it better than I can.</p>
+
+<blockquote>
+<p>Guard automates various tasks by running custom rules whenever file or directories are modified. It&#39;s frequently used by software developers, web designers, writers and other specialists to avoid mundane, repetitive actions and commands such as &quot;relaunching&quot; tools after changing source files or configurations.</p>
+</blockquote>
+
+<h2>Installation</h2>
+
+<p>Thankfully <a href="https://github.com/guard/guard-rspec">guard-rspec</a> has been developed to allow us to integrate rspec with guard seamlessly and there are only a few steps required to get up and running on an existing rails app.</p>
+
+<p>Firstly add guard-rspec to the development group in your Gemfile:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="n">group</span> <span class="ss">:development</span> <span class="k">do</span>
+  <span class="n">gem</span> <span class="s1">'guard'</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Install it by running bundler:</p>
+<div class="highlight"><pre class="highlight shell"><code>bundle <span class="nb">install</span>
+</code></pre></div>
+<p>Generate a <code>Guardfile</code> with default rspec configurations:</p>
+<div class="highlight"><pre class="highlight shell"><code>bundle <span class="nb">exec </span>guard init rspec
+</code></pre></div>
+<p>This command will generate a file that will look something like this:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="c1"># Guardfile</span>
+<span class="n">guard</span> <span class="ss">:rspec</span><span class="p">,</span> <span class="ss">cmd: </span><span class="s2">"bundle exec rspec"</span> <span class="k">do</span>
+  <span class="nb">require</span> <span class="s2">"guard/rspec/dsl"</span>
+  <span class="n">dsl</span> <span class="o">=</span> <span class="no">Guard</span><span class="o">::</span><span class="no">RSpec</span><span class="o">::</span><span class="no">Dsl</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+
+  <span class="c1"># RSpec files</span>
+  <span class="n">rspec</span> <span class="o">=</span> <span class="n">dsl</span><span class="p">.</span><span class="nf">rspec</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rspec</span><span class="p">.</span><span class="nf">spec_helper</span><span class="p">)</span> <span class="p">{</span> <span class="n">rspec</span><span class="p">.</span><span class="nf">spec_dir</span> <span class="p">}</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rspec</span><span class="p">.</span><span class="nf">spec_support</span><span class="p">)</span> <span class="p">{</span> <span class="n">rspec</span><span class="p">.</span><span class="nf">spec_dir</span> <span class="p">}</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rspec</span><span class="p">.</span><span class="nf">spec_files</span><span class="p">)</span>
+
+  <span class="c1"># Ruby files</span>
+  <span class="n">ruby</span> <span class="o">=</span> <span class="n">dsl</span><span class="p">.</span><span class="nf">ruby</span>
+  <span class="n">dsl</span><span class="p">.</span><span class="nf">watch_spec_files_for</span><span class="p">(</span><span class="n">ruby</span><span class="p">.</span><span class="nf">lib_files</span><span class="p">)</span>
+
+  <span class="c1"># Rails files</span>
+  <span class="n">rails</span> <span class="o">=</span> <span class="n">dsl</span><span class="p">.</span><span class="nf">rails</span><span class="p">(</span><span class="ss">view_extensions: </span><span class="sx">%w(erb haml slim)</span><span class="p">)</span>
+  <span class="n">dsl</span><span class="p">.</span><span class="nf">watch_spec_files_for</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">app_files</span><span class="p">)</span>
+  <span class="n">dsl</span><span class="p">.</span><span class="nf">watch_spec_files_for</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">views</span><span class="p">)</span>
+
+  <span class="n">watch</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">controllers</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span>
+    <span class="p">[</span>
+      <span class="n">rspec</span><span class="p">.</span><span class="nf">spec</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">"routing/</span><span class="si">#{</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">_routing"</span><span class="p">),</span>
+      <span class="n">rspec</span><span class="p">.</span><span class="nf">spec</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">"controllers/</span><span class="si">#{</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">_controller"</span><span class="p">),</span>
+      <span class="n">rspec</span><span class="p">.</span><span class="nf">spec</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">"acceptance/</span><span class="si">#{</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="p">]</span>
+  <span class="k">end</span>
+
+  <span class="c1"># Rails config changes</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">spec_helper</span><span class="p">)</span>     <span class="p">{</span> <span class="n">rspec</span><span class="p">.</span><span class="nf">spec_dir</span> <span class="p">}</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">routes</span><span class="p">)</span>          <span class="p">{</span> <span class="s2">"</span><span class="si">#{</span><span class="n">rspec</span><span class="p">.</span><span class="nf">spec_dir</span><span class="si">}</span><span class="s2">/routing"</span> <span class="p">}</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">app_controller</span><span class="p">)</span>  <span class="p">{</span> <span class="s2">"</span><span class="si">#{</span><span class="n">rspec</span><span class="p">.</span><span class="nf">spec_dir</span><span class="si">}</span><span class="s2">/controllers"</span> <span class="p">}</span>
+
+  <span class="c1"># Capybara features specs</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">view_dirs</span><span class="p">)</span>     <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="n">rspec</span><span class="p">.</span><span class="nf">spec</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">"features/</span><span class="si">#{</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="p">}</span>
+  <span class="n">watch</span><span class="p">(</span><span class="n">rails</span><span class="p">.</span><span class="nf">layouts</span><span class="p">)</span>       <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="n">rspec</span><span class="p">.</span><span class="nf">spec</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">"features/</span><span class="si">#{</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="c1"># Turnip features and steps</span>
+  <span class="n">watch</span><span class="p">(</span><span class="sr">%r{^spec/acceptance/(.+)</span><span class="se">\.</span><span class="sr">feature$}</span><span class="p">)</span>
+  <span class="n">watch</span><span class="p">(</span><span class="sr">%r{^spec/acceptance/steps/(.+)_steps</span><span class="se">\.</span><span class="sr">rb$}</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span>
+    <span class="no">Dir</span><span class="p">[</span><span class="no">File</span><span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="s2">"**/</span><span class="si">#{</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.feature"</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="s2">"spec/acceptance"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<h2>Running Guard</h2>
+
+<p>Now that we&#39;ve got guard configured we need to actually use it. Previously if we wanted to run a test with rspec we would need to pass the file as an argument directly and every time we either changed the spec or the target file (in this case <code>models/books.rb</code>) we would have to execute this command.</p>
+<div class="highlight"><pre class="highlight shell"><code>bundle <span class="nb">exec </span>rspec spec/models/books_spec.rb
+</code></pre></div>
+<p>Guard removes this hassle such that all we now need to do is start the guard process running with:</p>
+<div class="highlight"><pre class="highlight shell"><code>bundle <span class="nb">exec </span>guard
+</code></pre></div>
+<p>In your terminal you should now see confirmation that guard is running and listening for changes to your application:</p>
+<div class="highlight"><pre class="highlight shell"><code>16:19:58 - INFO - Guard::RSpec is running
+</code></pre></div>
+<p>Now if you make a change to <code>models/books.rb</code> guard will automatically run the tests in <code>spec/models/books_spec.rb</code> meaning you never need to re-enter your terminal and directly execute the <code>rspec</code> command again!</p>
+
+<p>Guard is highly customisable allowing you to specify which files to watch and which specs to trigger on a change to those files and even create custom watcher classes. For a full overview of how to customise guard and get the most out of its many features cheack out the <a href="https://github.com/guard/guard">official documentation</a>.</p>
+
+</div>
+    </div>
+  </body>
+</html>
