@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Lewis Youl</title>
+    <link rel="stylesheet" href="./stylesheets/tailwind.css" />
+    <link rel="stylesheet" href="./stylesheets/highlight.css" />
+  </head>
+  <body>
+    <nav class="bg-white border-b">
+      <div class="max-w-3xl mx-auto py-3">
+        <a class="text-pink-600 text-xl hover:underline" href="index.html">
+          <h3 class="m-0">Lewis Youl</h3>
+        </a>
+      </div>
+    </nav>
+
+    <div class="max-w-3xl mx-auto py-3">
+      <h1 class="m-0 pt-12 text-center">Infinitely Scrolling Lists with Hotwire and Zero JavaScript</h1>
+<p class="text-center text-md text-gray-500 mt-2">18 April 2021</p>
+
+
+<div id="post" class="pt-12">
+  <p>I recently added <a href="https://hotwire.dev/">hotwire</a> to my pet project <a href="https://snippetsafe.com">snippetsafe</a> and wanted to see if I could replace the infinite scroll functionalities for the snippet feeds without using any custom javascript at all. I&#39;m happy to say that I succeeded and in this post I&#39;m going to share how.</p>
+
+<h2>What we&#39;re going to build</h2>
+
+<p>As I built this for <a href="https://www.snippetsafe.com">snippetsafe</a> I&#39;m going to use the <code>Snippet</code> model as an example. For the purposes of this post, a <code>Snippet</code> has two attributes - <code>title</code>, a string corresponding to the title of the snippet and <code>body</code>, text corresponding to the content of the snippet.</p>
+
+<p>The plan is to have an initial route we can hit that will display all of our snippets, from the view rendered by this action we will use the new <code>turbo_frame_tag</code> to trigger a request for our snippets (in batches of 8) once the initial page has loaded, much like modern Single Page Apps. The HTML response containing our snippets will automatically be inserted onto our index page by the matching <code>turbo_frame_tag</code> present on the page.</p>
+
+<p>At the very bottom of each response will be another <code>turbo_frame_tag</code> with a unique identifier that pertains to the next page of snippets that need to be loaded. We&#39;ll use the <code>loading: :lazy</code> option to ensure that the request for the content of this tag is only triggered once the tag itself is visible on the viewport - i.e. once you have scrolled to the bottom of the page.</p>
+
+<h2>The set up</h2>
+
+<p>We&#39;re going to need to add the <a href="https://github.com/hotwired/hotwire-rails">hotwire-rails</a> gem to our rails application before we can get down to business:</p>
+<div class="highlight"><pre class="highlight shell"><code><span class="c"># terminal</span>
+bundle add hotwire-rails
+bundle <span class="nb">install
+</span>rails hotwire:install
+</code></pre></div>
+<p>Now we&#39;ve got everything installed, let&#39;s get cracking!</p>
+
+<h2>Create the index action</h2>
+
+<p>Firstly we need to create the index route to hit:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="c1"># config/routes.rb</span>
+<span class="no">Rails</span><span class="p">.</span><span class="nf">application</span><span class="p">.</span><span class="nf">routes</span><span class="p">.</span><span class="nf">draw</span> <span class="k">do</span>
+  <span class="n">resources</span> <span class="ss">:snippets</span><span class="p">,</span> <span class="ss">only: :index</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Then create the controller and add the index action:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="c1"># app/controllers/snippets_controller.rb</span>
+<span class="k">class</span> <span class="nc">SnippetsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">index</span><span class="p">;</span> <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Finally we add the corresponding view:</p>
+<div class="highlight"><pre class="highlight erb"><code><span class="c">&lt;%# app/views/snippets/index.html.erb %&gt;</span>
+<span class="cp">&lt;%=</span> <span class="n">turbo_frame_tag</span> <span class="s2">"snippets_1"</span><span class="p">,</span> <span class="ss">src: </span><span class="n">shared_snippets_path</span><span class="p">(</span><span class="ss">page: </span><span class="mi">1</span><span class="p">)</span> <span class="cp">%&gt;</span>
+</code></pre></div>
+<p>The first two code blocks above are standard rails but it&#39;s in the view template where the magic is happening. The <code>turbo_frame_tag</code> is being given a unique id of <code>snippets_1</code> (which is essentially saying &quot;first page of snippets&quot;), this means that if <a href="">Turbo</a> receives any matching <code>&lt;turbo-frame&gt;</code> in a response from the server it will swap out the content of the tag we have defined on the index page with the content of the tag it receives in the response.</p>
+
+<p>The one final piece in the puzzle is the <code>src: shared_snippets_path(page: 1)</code>. We&#39;ll define the path shortly, but the important point to note here is that if you provide a <code>src</code> attribute to a <code>&lt;turbo-frame&gt;</code>, Turbo will automatically make a request to the <code>src</code> value when the page is loaded. This means that as soon as our index page is loaded a request is made to <code>shared_snippets_path(page: 1)</code> and the response from that endpoint will be inserted into our index page as long as the returned <code>&lt;turbo-frame&gt;</code> id matches the one already on the page.</p>
+
+<h2>Define the route that will render our snippets</h2>
+
+<p>On <a href="https://www.snippetsafe.com">snippetsafe</a> the list of snippets is used in many different places. As a result the route to obtain them is under the <code>shared</code> namespace. Let&#39;s create it!</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="c1"># config/routes.rb</span>
+<span class="no">Rails</span><span class="p">.</span><span class="nf">application</span><span class="p">.</span><span class="nf">routes</span><span class="p">.</span><span class="nf">draw</span> <span class="k">do</span>
+  <span class="n">resources</span> <span class="ss">:snippets</span><span class="p">,</span> <span class="ss">only: :index</span>
+
+  <span class="n">namespace</span> <span class="ss">:shared</span> <span class="k">do</span>
+    <span class="n">resources</span> <span class="ss">:snippets</span><span class="p">,</span> <span class="ss">only: :index</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Then create the corresponding namespaced controller and action:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="c1"># app/controllers/shared/snippets_controller.rb</span>
+<span class="k">class</span> <span class="nc">Shared::SnippetsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="no">PER_PAGE</span> <span class="o">=</span> <span class="mi">8</span><span class="p">.</span><span class="nf">freeze</span>
+
+  <span class="k">def</span> <span class="nf">index</span>
+    <span class="vi">@page</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="ss">:page</span><span class="p">]</span> <span class="p">?</span> <span class="n">params</span><span class="p">[</span><span class="ss">:page</span><span class="p">].</span><span class="nf">to_i</span> <span class="p">:</span> <span class="mi">1</span>
+    <span class="vi">@offset</span> <span class="o">=</span> <span class="p">(</span><span class="vi">@page</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="no">PER_PAGE</span>
+    <span class="vi">@snippets</span> <span class="o">=</span> <span class="no">Snippet</span><span class="p">.</span><span class="nf">offset</span><span class="p">(</span><span class="vi">@offset</span><span class="p">).</span><span class="nf">limit</span><span class="p">(</span><span class="no">PER_PAGE</span><span class="p">)</span>
+    <span class="vi">@next_page</span> <span class="o">=</span> <span class="vi">@page</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="vi">@snippets</span><span class="p">.</span><span class="nf">size</span> <span class="o">==</span> <span class="no">PER_PAGE</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Finally create the HTML template for this action:</p>
+<div class="highlight"><pre class="highlight erb"><code><span class="c">&lt;%# app/views/shared/snippets.html.erb %&gt;</span>
+<span class="cp">&lt;%=</span> <span class="n">turbo_frame_tag</span> <span class="s2">"snippets_</span><span class="si">#{</span><span class="vi">@page</span><span class="si">}</span><span class="s2">"</span> <span class="k">do</span> <span class="cp">%&gt;</span>
+  <span class="cp">&lt;%</span> <span class="vi">@snippets</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">snippet</span><span class="o">|</span> <span class="cp">%&gt;</span>
+    <span class="nt">&lt;div&gt;</span>
+      <span class="nt">&lt;h1&gt;</span><span class="cp">&lt;%=</span> <span class="n">snippet</span><span class="p">.</span><span class="nf">title</span> <span class="cp">%&gt;</span><span class="nt">&lt;/h1&gt;</span>
+      <span class="nt">&lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">snippet</span><span class="p">.</span><span class="nf">body</span> <span class="cp">%&gt;</span><span class="nt">&lt;/p&gt;</span>
+    <span class="nt">&lt;/div&gt;</span>
+  <span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span>
+
+  <span class="cp">&lt;%</span> <span class="k">if</span> <span class="vi">@next_page</span> <span class="cp">%&gt;</span>
+    <span class="cp">&lt;%=</span> <span class="n">turbo_frame_tag</span> <span class="s2">"snippets_</span><span class="si">#{</span><span class="vi">@next_page</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="ss">loading: :lazy</span><span class="p">,</span> <span class="ss">src: </span><span class="n">shared_snippets_path</span><span class="p">(</span><span class="ss">page: </span><span class="vi">@next_page</span><span class="p">)</span> <span class="cp">%&gt;</span>
+  <span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span>
+</code></pre></div>
+<h2>What&#39;s happening?</h2>
+
+<p>As explained above, as soon as we load our index page at <code>/snippets</code> Turbo will automatically make a request to this newly created endpoint <code>shared/snippets?page=1</code> thanks to the <code>&lt;turbo-frame&gt;</code> with the <code>src</code> attribute set to <code>shared_snippets_path(page: 1)</code>. In the <code>Shared::SnippetsController#index</code> action we grab the &quot;page&quot; from the params (or set it if it isn&#39;t passed), then we calculate the snippets we want to return through a combination of the ActiveRecord <a href="https://apidock.com/rails/ActiveRecord/QueryMethods/offset">offset</a> and <a href="https://apidock.com/rails/ActiveRecord/QueryMethods/limit">limit</a> functions. We finally determine whether there are further snippets to return by checking whether there are fewer snippets returned from the database than the amount we are aiming to show per page (8 - defined by the <code>PER_PAGE</code> constant). If there are more snippet to show we set <code>@per_page</code> as <code>@page + 1</code>. These values are then used in the view.</p>
+
+<p>In the view template, <code>@page</code> is interpolated into the <code>turbo_frame_tag</code> id so that it matches the id of the <code>&lt;turbo-frame&gt;</code> that initiated the request (for the first iteration this is always <code>&quot;snippets_1&quot;</code>). Within this <code>&lt;turbo-frame&gt;</code> we then render the HTML for each snippet retrieved fromt he database. Finally, still within the same <code>turbo_frame_tag</code> and only if there is another page (defined by the <code>@next_page</code> variable) we render another <code>&lt;turbo-frame&gt;</code> with an id of <code>&quot;snippets_#{@next_page}&quot;</code> (which will evaluate to <code>&quot;snippets_2&quot;</code> for the first iteration). Again we define the <code>src</code> for this frame but passing the <code>@next_page</code> as a param. The difference here is that we are also adding <code>loading: :lazy</code> which will mean that the request for this <code>&lt;tubo-frame&gt;</code> is only made once that frame is visible on the page. Once this happens the cycle starts again but with the page numbers incremented until there are no more snippets to view.</p>
+
+<h2>Job done</h2>
+
+<p>You now have the basics of an infinitely scrolling list view but there are still a few things you can do to improve it. How about adding an indicator to your <code>&lt;turbo-frame&gt;</code> tags to indicate that you&#39;re app is making a request to fetch more snippets? Anything within a <code>&lt;turbo-frame&gt;</code> tag is automatically replaced with the corresponding response, so something like this would work nicely:</p>
+<div class="highlight"><pre class="highlight erb"><code><span class="c">&lt;%# app/views/snippets/index.html.erb %&gt;</span>
+<span class="cp">&lt;%=</span> <span class="n">turbo_frame_tag</span> <span class="s2">"snippets_1"</span><span class="p">,</span> <span class="ss">src: </span><span class="n">shared_snippets_path</span><span class="p">(</span><span class="ss">page: </span><span class="mi">1</span><span class="p">)</span> <span class="k">do</span> <span class="cp">%&gt;</span>
+    <span class="nt">&lt;h3&gt;</span>Loading...<span class="nt">&lt;/h3&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span>
+</code></pre></div>
+<p>I don&#39;t want to give you to much guidance in this department as part of the fun of building things is reading the docs and tinkering to see what&#39;s possible. Just have fun with it!</p>
+
+<h2>References</h2>
+
+<ul>
+<li><a href="https://hotwire.dev/">Hotwire</a></li>
+<li><a href="https://turbo.hotwire.dev/">Turbo</a></li>
+<li><a href="https://stevepolito.design/blog/rails-infinite-scrolling-blog-roll/">Blog post</a> by <a href="https://twitter.com/stevepolitodsgn">@stevepolitodsgn</a></li>
+</ul>
+
+</div>
+    </div>
+  </body>
+</html>

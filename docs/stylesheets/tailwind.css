@@ -15344,6 +15344,15 @@ pre > code {
   text-decoration: underline;
 }
 
+#post > ul > li > a {
+  --tw-text-opacity: 1;
+  color: rgba(219, 39, 119, var(--tw-text-opacity))
+}
+
+#post > ul > li > a:hover {
+  text-decoration: underline;
+}
+
 @media (min-width: 640px) {
 }
 

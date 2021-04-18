@@ -7,7 +7,7 @@ require './index.rb'
 require './post.rb'
 
 posts_filepaths = Dir['./src/posts/*.md']
-posts = posts_filepaths.map { |filepath| Post.new(filepath) }
+posts = posts_filepaths.map { |filepath| Post.new(filepath) }.sort { |p1, p2| p2.date <=> p1.date }
 
 Index.new(posts).publish
 posts.each(&:publish)
