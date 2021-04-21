@@ -8,7 +8,7 @@ I recently added [hotwire](https://hotwire.dev/) to my pet project [snippetsafe]
 
 ## What we're going to build
 
-As I built this for [snippetsafe](https://www.snippetsafe.com) I'm going to use the `Snippet` model as an example. For the purposes of this post, a `Snippet` has two attributes - `title`, a string corresponding to the title of the snippet and `body`, text corresponding to the content of the snippet.
+As I built this for snippetsafe I'm going to use the `Snippet` model as an example. For the purposes of this post, a `Snippet` has two attributes - `title`, a string corresponding to the title of the snippet and `body`, text corresponding to the content of the snippet.
 
 The plan is to have an initial route we can hit that will display all of our snippets, from the view rendered by this action we will use the new `turbo_frame_tag` to trigger a request for our snippets (in batches of 8) once the initial page has loaded, much like modern Single Page Apps. The HTML response containing our snippets will automatically be inserted onto our index page by the matching `turbo_frame_tag` present on the page.
 
@@ -60,7 +60,7 @@ The one final piece in the puzzle is the `src: shared_snippets_path(page: 1)`. W
 
 ## Define the route that will render our snippets
 
-On [snippetsafe](https://www.snippetsafe.com) the list of snippets is used in many different places. As a result the route to obtain them is under the `shared` namespace. Let's create it!
+On snippetsafe the list of snippets is used in many different places. As a result the route to obtain them is under the `shared` namespace. Let's create it!
 
 ```ruby
 # config/routes.rb
