@@ -38,7 +38,7 @@ class Post
   end
 
   def path
-    "#{@basename}.html"
+    "#{@basename}"
   end
 
   private
