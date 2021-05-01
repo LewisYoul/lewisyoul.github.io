@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Lewis Youl</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./stylesheets/tailwind.css" />
+    <link rel="stylesheet" href="./stylesheets/highlight.css" />
+  </head>
+  <body>
+    <nav class="bg-white border-b">
+      <div class="px-3 md:px-0  max-w-3xl mx-auto py-3 flex justify-between items-center">
+        <a class="text-pink-600 text-xl hover:underline" href="index.html">
+          <h3 class="m-0">Lewis Youl</h3>
+        </a>
+        <div>
+          <a class="inline-block text-pink-600 hover:text-pink-400" href="https://www.twitter.com/lewisyoul" target="_blank">
+            <svg class="h-5 w-5" fill="currentColor" version="1.1" id="Logo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 248 204" style="enable-background:new 0 0 248 204;" xml:space="preserve">
+              <g id="Logo_1_">
+                <path id="white_background" class="st0" d="M221.95,51.29c0.15,2.17,0.15,4.34,0.15,6.53c0,66.73-50.8,143.69-143.69,143.69v-0.04
+                  C50.97,201.51,24.1,193.65,1,178.83c3.99,0.48,8,0.72,12.02,0.73c22.74,0.02,44.83-7.61,62.72-21.66
+                  c-21.61-0.41-40.56-14.5-47.18-35.07c7.57,1.46,15.37,1.16,22.8-0.87C27.8,117.2,10.85,96.5,10.85,72.46c0-0.22,0-0.43,0-0.64
+                  c7.02,3.91,14.88,6.08,22.92,6.32C11.58,63.31,4.74,33.79,18.14,10.71c25.64,31.55,63.47,50.73,104.08,52.76
+                  c-4.07-17.54,1.49-35.92,14.61-48.25c20.34-19.12,52.33-18.14,71.45,2.19c11.31-2.23,22.15-6.38,32.07-12.26
+                  c-3.77,11.69-11.66,21.62-22.2,27.93c10.01-1.18,19.79-3.86,29-7.95C240.37,35.29,231.83,44.14,221.95,51.29z"/>
+              </g>
+            </svg>
+          </a>
+          <a href="https://github.com/LewisYoul" target="_blank" class="ml-3 inline-block text-pink-600 hover:text-pink-400">
+            <svg class="h-5 w-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="px-3 md:px-0 max-w-3xl mx-auto py-3">
+      <h1 class="m-0 pt-12 text-center">Counting with ActiveRecord - Count, Size & Length</h1>
+<p class="text-center text-md text-gray-500 mt-2">01 May 2021</p>
+
+
+<div id="post" class="pt-12">
+  <p>There are a few options available to you for performing counts of records with ActiveRecord. You would be forgiven for believing that <code>length</code>, <code>size</code> and <code>count</code> are just aliases for one another. In some cases this is true, but there is a clear reason to use one over another in certain situations, this post highlights when to use each option to obtain the best performance from your application.</p>
+
+<p>We&#39;ll be referencing a small rails app called &quot;cars&quot;, the source code for which can be found <a href="https://github.com/LewisYoul/cars">here</a> for you to follow along. In this example we are aiming to count the number of cars that are currently parked in each garage in our database. There is a one to many relationship between Garage &amp; Car.</p>
+
+<h2>count</h2>
+
+<p>We want to get a <a href="https://apidock.com/rails/ActiveRecord/Calculations/ClassMethods/count">count</a> of all of the cars in each of our garages and in order to do this we can grab all of our <code>Garage</code> records and iterate through them to fetch every <code>Car</code> that is parked there. In order to prevent N+1 queries we are using <a href="https://apidock.com/rails/ActiveRecord/QueryMethods/includes">#includes</a>:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">count</span> <span class="p">}</span>
+
+<span class="c1">#=&gt; [3, 2, 1, 1, 0]</span>
+</code></pre></div>
+<p>This gives us exactly what we need, however if we look at our SQL logs we can see that every call to <code>garage.cars.count</code> is making a request to the database to perform that count:</p>
+<div class="highlight"><pre class="highlight plaintext"><code>Garage Load (0.4ms)  SELECT "garages".* FROM "garages"
+Car Load (0.3ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" IN ($1, $2, $3, $4, $5)  [[nil, 1], [nil, 2], [nil, 3], [nil, 4], [nil, 5]]
+  (0.5ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 1]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 2]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 3]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 4]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 5]]
+
+</code></pre></div>
+<p>The first line indicates fetching all of our <code>Garage</code> records from the database. The second line is <code>ActiveRecord</code> eager loading our <code>Car</code> records from the database in the hope of preventing N+1 queries. However we can then see five separate requests to the database to fetch the <code>Car</code> count for each <code>Garage</code>. What the heck, using <code>#includes</code> should mean this doesn&#39;t happen right?</p>
+
+<p>Well it turns out that <code>#count</code> will always make a request to the database to fetch the count of the records we want, regardless of whether we have eager loaded those records or not. This means that we might as well have done the following to save us a request to also fetch all of the cars from the database:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">all</span><span class="p">.</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">count</span> <span class="p">}</span>
+</code></pre></div>
+<p>Which gives us the same result but with one less database hit:</p>
+<div class="highlight"><pre class="highlight plaintext"><code>Garage Load (0.4ms)  SELECT "garages".* FROM "garages"
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 1]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 2]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 3]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 4]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 5]]
+</code></pre></div>
+<p>So how can we make the most of eager loading to count record associations? Let&#39;s have a look at <code>#length</code>.</p>
+
+<h2>length</h2>
+
+<p>Let&#39;s perform the same operation, substituting count for <a href="https://apidock.com/ruby/Array/length">length</a>:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">length</span> <span class="p">}</span>
+
+<span class="c1">#=&gt; [3, 2, 1, 1, 0]</span>
+</code></pre></div>
+<p>Much the same on the face of it but if we check the SQL logs we can see that there were no extra requests to the database in order to count the number of cars:</p>
+<div class="highlight"><pre class="highlight plaintext"><code>Garage Load (0.3ms)  SELECT "garages".* FROM "garages"
+Car Load (0.3ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" IN ($1, $2, $3, $4, $5)  [[nil, 1], [nil, 2], [nil, 3], [nil, 4], [nil, 5]]
+</code></pre></div>
+<p>The reason for this is because <code>ActiveRecord</code> is now honouring our eager loading of <code>Car</code> records. As it&#39;s already performed a query to load all <code>Car</code> records associated with each <code>Garage</code> it can calculate the number of cars per garage in memory, without needing to hit the database again. It should be noted though, that if you use length when records are not eager loaded it will actually load all of the records you are counting from the database into memory and then count them in Ruby:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">all</span><span class="p">.</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">g</span><span class="o">|</span> <span class="n">g</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">length</span> <span class="p">}</span>
+</code></pre></div>
+<p>Produces SQL logs:</p>
+<div class="highlight"><pre class="highlight plaintext"><code>Garage Load (0.3ms)  SELECT "garages".* FROM "garages"
+Car Load (0.2ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 1]]
+Car Load (0.1ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 2]]
+Car Load (0.1ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 3]]
+Car Load (0.1ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 4]]
+Car Load (0.1ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 5]]
+</code></pre></div>
+<h2>size</h2>
+
+<p>Rails has one more trick up its sleeve when it comes to counting records in this way and it&#39;s <a href="https://apidock.com/rails/ActiveRecord/Associations/AssociationCollection/size">size</a>. On the face of it size performs the same as length:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">size</span> <span class="p">}</span>
+
+<span class="c1">#=&gt; [3, 2, 1, 1, 0]</span>
+</code></pre></div>
+<p>Producing the queries:</p>
+<div class="highlight"><pre class="highlight plaintext"><code>Garage Load (0.3ms)  SELECT "garages".* FROM "garages"
+Car Load (0.3ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" IN ($1, $2, $3, $4, $5)  [[nil, 1], [nil, 2], [nil, 3], [nil, 4], [nil, 5]]
+</code></pre></div>
+<p>Size has a benefit over length in that it will always perform an SQL <code>COUNT</code> statement if the records are not eagerly loaded, rather than loading them all into memory:</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">all</span><span class="p">.</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">size</span> <span class="p">}</span>
+</code></pre></div>
+<p>Producing the queries:</p>
+<div class="highlight"><pre class="highlight plaintext"><code>Garage Load (0.3ms)  SELECT "garages".* FROM "garages"
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 1]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 2]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 3]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 4]]
+  (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 5]]
+</code></pre></div>
+<p>Another perk of this method is that it will also observe a <a href="https://guides.rubyonrails.org/association_basics.html#options-for-belongs-to-counter-cache">counter_cache</a> if one is present for the association. A big plus!</p>
+
+<h2>Benchmarking</h2>
+
+<p>So what does this all mean for performance? Let&#39;s compare the options (number in brackets it total execution time):</p>
+<div class="highlight"><pre class="highlight ruby"><code><span class="c1"># count</span>
+<span class="no">Benchmark</span><span class="p">.</span><span class="nf">measure</span> <span class="p">{</span> <span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">g</span><span class="o">|</span> <span class="n">g</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">count</span> <span class="p">}</span> <span class="p">}</span>
+<span class="c1">#=&gt; 0.004082   0.000419   0.004501 (  0.006126)</span>
+
+<span class="c1"># length</span>
+<span class="no">Benchmark</span><span class="p">.</span><span class="nf">measure</span> <span class="p">{</span> <span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">g</span><span class="o">|</span> <span class="n">g</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">length</span> <span class="p">}</span> <span class="p">}</span>
+<span class="c1">#=&gt; 0.001571   0.000140   0.001711 (  0.002080)</span>
+
+<span class="c1"># size</span>
+<span class="no">Benchmark</span><span class="p">.</span><span class="nf">measure</span> <span class="p">{</span> <span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">g</span><span class="o">|</span> <span class="n">g</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">size</span> <span class="p">}</span> <span class="p">}</span>
+<span class="c1">#=&gt; 0.001596   0.000114   0.001710 (  0.002063)</span>
+</code></pre></div>
+<p>As you can see <code>count</code> is by far the slowest as it completely ignores the eager loading, while <code>length</code> and <code>size</code> are pretty much identical because they are both using <code>length</code> under the hood.</p>
+
+<h2>Conclusion</h2>
+
+<p>So which option should you use? In this scenario you should use either <code>length</code> or <code>size</code> because we have eager loaded the cars associations. However, in general it&#39;s recommended to use <code>size</code> as it will automatically delegate to either <code>count</code> or <code>length</code> depending on whether the association is loaded or not. It will also observe any counter caches that you have on your models.</p>
+
+</div>
+    </div>
+  </body>
+</html>
