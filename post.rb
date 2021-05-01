@@ -26,7 +26,7 @@ class Post
   end
 
   def title
-    @frontmatter['title']
+    @title ||= @frontmatter['title']
   end
 
   def summary
