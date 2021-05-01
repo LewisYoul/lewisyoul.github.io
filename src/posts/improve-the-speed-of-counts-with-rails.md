@@ -14,7 +14,6 @@ We want to get a [count](https://apidock.com/rails/ActiveRecord/Calculations/Cla
 
 ```ruby
 Garage.includes(:cars).map { |garage| garage.cars.count }
-
 #=> [3, 2, 1, 1, 0]
 ```
 
@@ -28,7 +27,6 @@ Car Load (0.3ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" IN ($1, $
   (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 3]]
   (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 4]]
   (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 5]]
-
 ```
 
 The first line indicates fetching all of our `Garage` records from the database. The second line is `ActiveRecord` eager loading our `Car` records from the database in the hope of preventing N+1 queries. However we can then see five separate requests to the database to fetch the `Car` count for each `Garage`. What the heck, using `#includes` should mean this doesn't happen right?
@@ -58,7 +56,6 @@ Let's perform the same operation, substituting count for [length](https://apidoc
 
 ```ruby
 Garage.includes(:cars).map { |garage| garage.cars.length }
-
 #=> [3, 2, 1, 1, 0]
 ```
 
@@ -93,7 +90,6 @@ Rails has one more trick up its sleeve when it comes to counting records in this
 
 ```ruby
 Garage.includes(:cars).map { |garage| garage.cars.size }
-
 #=> [3, 2, 1, 1, 0]
 ```
 

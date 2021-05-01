@@ -46,7 +46,6 @@
 
 <p>We want to get a <a href="https://apidock.com/rails/ActiveRecord/Calculations/ClassMethods/count">count</a> of all of the cars in each of our garages and in order to do this we can grab all of our <code>Garage</code> records and iterate through them to fetch every <code>Car</code> that is parked there. In order to prevent N+1 queries we are using <a href="https://apidock.com/rails/ActiveRecord/QueryMethods/includes">#includes</a>:</p>
 <div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">count</span> <span class="p">}</span>
-
 <span class="c1">#=&gt; [3, 2, 1, 1, 0]</span>
 </code></pre></div>
 <p>This gives us exactly what we need, however if we look at our SQL logs we can see that every call to <code>garage.cars.count</code> is making a request to the database to perform that count:</p>
@@ -57,7 +56,6 @@ Car Load (0.3ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" IN ($1, $
   (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 3]]
   (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 4]]
   (0.2ms)  SELECT COUNT(*) FROM "cars" WHERE "cars"."garage_id" = $1  [["garage_id", 5]]
-
 </code></pre></div>
 <p>The first line indicates fetching all of our <code>Garage</code> records from the database. The second line is <code>ActiveRecord</code> eager loading our <code>Car</code> records from the database in the hope of preventing N+1 queries. However we can then see five separate requests to the database to fetch the <code>Car</code> count for each <code>Garage</code>. What the heck, using <code>#includes</code> should mean this doesn&#39;t happen right?</p>
 
@@ -78,7 +76,6 @@ Car Load (0.3ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" IN ($1, $
 
 <p>Let&#39;s perform the same operation, substituting count for <a href="https://apidock.com/ruby/Array/length">length</a>:</p>
 <div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">length</span> <span class="p">}</span>
-
 <span class="c1">#=&gt; [3, 2, 1, 1, 0]</span>
 </code></pre></div>
 <p>Much the same on the face of it but if we check the SQL logs we can see that there were no extra requests to the database in order to count the number of cars:</p>
@@ -100,7 +97,6 @@ Car Load (0.1ms)  SELECT "cars".* FROM "cars" WHERE "cars"."garage_id" = $1  [["
 
 <p>Rails has one more trick up its sleeve when it comes to counting records in this way and it&#39;s <a href="https://apidock.com/rails/ActiveRecord/Associations/AssociationCollection/size">size</a>. On the face of it size performs the same as length:</p>
 <div class="highlight"><pre class="highlight ruby"><code><span class="no">Garage</span><span class="p">.</span><span class="nf">includes</span><span class="p">(</span><span class="ss">:cars</span><span class="p">).</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">garage</span><span class="o">|</span> <span class="n">garage</span><span class="p">.</span><span class="nf">cars</span><span class="p">.</span><span class="nf">size</span> <span class="p">}</span>
-
 <span class="c1">#=&gt; [3, 2, 1, 1, 0]</span>
 </code></pre></div>
 <p>Producing the queries:</p>
